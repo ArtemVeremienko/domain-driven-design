@@ -1,11 +1,9 @@
-const express = require('express')
+const http = require('http')
 const pg = require('pg')
-const bodyParser = require('body-parser')
 const hash = require('./hash.js')
+const receiveArgs = require('./body.js')
 
 const PORT = 8000
-
-const app = express()
 
 const pool = new pg.Pool({
   host: '127.0.0.1',
@@ -15,61 +13,47 @@ const pool = new pg.Pool({
   password: 'password',
 })
 
-app.use(bodyParser.json())
+const routing = {
+  user: {
+    async get(id) {
+      if (!id) return pool.query('SELECT id, login FROM users')
+      const sql = 'SELECT id, login FROM users WHERE id = $1'
+      return pool.query(sql, [id])
+    },
+    async post({ login, password }) {
+      const sql = 'INSERT INTO users (login, password) VALUES ($1, $2)'
+      const passwordHash = await hash(password)
+      return pool.query(sql, [login, passwordHash])
+    },
+    async put(id, { login, password }) {
+      const sql = 'UPDATE users SET login = $1, password = $2 WHERE id = $3'
+      const passwordHash = await hash(password)
+      return pool.query(sql, [login, passwordHash, id])
+    },
+    async delete(id) {
+      const sql = 'DELETE FROM users WHERE id = $1'
+      return pool.query(sql, [id])
+    },
+  },
+}
 
-app.use(bodyParser.urlencoded({ extended: true }))
-
-app.get('/user', (req, res) => {
-  console.log(`${req.socket.remoteAddress} GET /user`)
-  pool.query('SELECT * FROM users', (err, data) => {
-    if (err) throw err
-    res.status(200).json(data.rows)
+http
+  .createServer(async (req, res) => {
+    const { method, url, socket } = req
+    const [name, id] = url.substring(1).split('/')
+    const entity = routing[name]
+    if (!entity) return res.end('Not found')
+    const handler = entity[method.toLocaleLowerCase()]
+    if (!handler) return res.end('Not found')
+    const src = handler.toString()
+    const signature = src.substring(0, src.indexOf(')'))
+    const args = []
+    if (signature.includes('(id')) args.push(id)
+    if (signature.includes('{')) args.push(await receiveArgs(req))
+    console.log(`${socket.remoteAddress}: ${method} ${url}`)
+    const result = await handler(...args)
+    res.end(JSON.stringify(result.rows))
   })
-})
+  .listen(PORT)
 
-app.post('/user', async (req, res) => {
-  const { login, password } = req.body
-  const user = JSON.stringify({ login, password })
-  console.log(`${req.socket.remoteAddress} POST /user ${user}`)
-  const sql = 'INSERT INTO users (login, password) VALUES ($1, $2)'
-  const passwordHash = await hash(password)
-  pool.query(sql, [login, passwordHash], (err, data) => {
-    if (err) throw err
-    res.status(201).json({ created: data.insertId })
-  })
-})
-
-app.get('/user/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  console.log(`${req.socket.remoteAddress} GET /user/${id}`)
-  pool.query('SELECT * FROM users WHERE id = $1', [id], (err, data) => {
-    if (err) throw err
-    res.status(200).json(data.rows)
-  })
-})
-
-app.put('/user/:id', async (req, res) => {
-  const id = parseInt(req.params.id)
-  const { login, password } = req.body
-  const user = JSON.stringify({ login, password })
-  console.log(`${req.socket.remoteAddress} PUT /user/${id} ${user}`)
-  const sql = 'UPDATE users SET login = $1, password = $2 WHERE id = $3'
-  const passwordHash = await hash(password)
-  pool.query(sql, [login, passwordHash, id], (err, data) => {
-    if (err) throw err
-    res.status(201).json({ updated: data.insertId })
-  })
-})
-
-app.delete('/user/:id', (req, res) => {
-  const id = parseInt(req.params.id)
-  console.log(`${req.socket.remoteAddress} DELETE /user/${id}`)
-  pool.query('DELETE FROM users WHERE id = $1', [id], (err, data) => {
-    if (err) throw err
-    res.status(201).json({ deleted: data.insertId })
-  })
-})
-
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`)
-})
+console.log(`Server listening on port ${PORT}`)
