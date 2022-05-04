@@ -1,12 +1,13 @@
 const http = require('http')
-const hash = require('./hash.js')
 const receiveArgs = require('./body.js')
 const db = require('./db.js')
 
 const PORT = 8000
 
 const routing = {
-  user: db('users'),
+  user: require('./user.js'),
+  country: db('country'),
+  city: db('city'),
 }
 
 const crud = { get: 'read', post: 'create', put: 'update', delete: 'delete' }
