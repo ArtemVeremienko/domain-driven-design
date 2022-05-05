@@ -1,12 +1,12 @@
-const db = require('./db.js')
-const server = require('./http.js')
-
-const PORT = 8000
+const db = require('./src/db.js')
+const server = require('./src/ws.js')
+const staticServer = require('./src/static.js')
 
 const routing = {
-  user: require('./user.js'),
+  user: require('./src/user.js'),
   country: db('country'),
   city: db('city'),
 }
 
-server(routing, PORT)
+staticServer('./static', 8000)
+server(routing, 8001)
