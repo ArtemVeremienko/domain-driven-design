@@ -31,10 +31,8 @@ const api = scaffold({
     find: ['mask'],
   },
   country: {
-    create: ['record'],
     read: ['id'],
-    update: ['id', 'record'],
-    delete: ['id'],
+    find: ['mask'],
   },
   city: {
     create: ['record'],
