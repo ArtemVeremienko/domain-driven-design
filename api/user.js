@@ -1,5 +1,7 @@
-const db = require('./db.js')
-const hash = require('./hash.js')
+'use strict'
+
+const db = require('../src/db.js')
+const hash = require('../src/hash.js')
 
 const users = db('users')
 
@@ -17,5 +19,9 @@ module.exports = {
   },
   async delete(id) {
     return users.delete(id)
+  },
+  async find(mask) {
+    const sql = 'SELECT * FROM users WHERE login LIKE $1'
+    return users.query(sql, [mask])
   },
 }

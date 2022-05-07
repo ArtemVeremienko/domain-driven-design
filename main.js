@@ -1,12 +1,21 @@
-const db = require('./src/db.js')
+const fsp = require('fs').promises
+const path = require('path')
 const server = require('./src/ws.js')
 const staticServer = require('./src/static.js')
 
-const routing = {
-  user: require('./src/user.js'),
-  country: db('country'),
-  city: db('city'),
-}
+const apiPath = path.join(process.cwd(), './api')
 
-staticServer('./static', 8000)
-server(routing, 8001)
+const routing = {};
+
+(async () => {
+  const files = await fsp.readdir(apiPath)
+  for (const fileName of files) {
+    if (!fileName.endsWith('.js')) continue
+    const filePath = path.join(apiPath, fileName)
+    const serviceName = path.basename(fileName, '.js')
+    routing[serviceName] = require(filePath)
+  }
+
+  staticServer('./static', 8000)
+  server(routing, 8001)
+})()
