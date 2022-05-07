@@ -1,4 +1,5 @@
 const http = require('http')
+const console = require('./logger.js')
 
 const receiveArgs = async (req) => {
   const buffers = []

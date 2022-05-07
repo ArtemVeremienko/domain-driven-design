@@ -1,4 +1,5 @@
 const { Server } = require('ws')
+const console = require('./logger.js')
 
 module.exports = (routing, port) => {
   const ws = new Server({ port })

@@ -6,8 +6,13 @@ const staticServer = require('./src/static.js')
 const db = require('./src/db.js')
 const hash = require('./src/hash.js')
 const load = require('./src/load.js')
+const logger = require('./src/logger.js')
 
-const sandbox = { console, db: Object.freeze(db), common: { hash } }
+const sandbox = {
+  console: Object.freeze(logger),
+  db: Object.freeze(db),
+  common: { hash },
+}
 
 const apiPath = path.join(process.cwd(), './api')
 const routing = {}

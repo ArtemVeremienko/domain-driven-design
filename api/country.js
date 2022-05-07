@@ -2,6 +2,7 @@ const country = db('country');
 
 ({
   read(id) {
+    console.log({ db })
     return country.read(id)
   },
   find(mask) {
